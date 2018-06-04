@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Plain Map</title>
+    <meta charset="utf-8" />
+    <script src="restaurants.json"></script>
+
+    <script type='text/javascript'>
+
+        function GetMap() {
+            var map = new Microsoft.Maps.Map('#myMap', {
+                credentials: 'ApwDy1ZLk6lk2vuBwx36CsbfuknpFri98apbnes2m-hskC0bc-Dhu8p9mYJgEzxW'
+            });
+
+            
+        }
+    </script>
+    <script type='text/javascript' src='https://www.bing.com/api/maps/mapcontrol?callback=GetMap&key=[ApwDy1ZLk6lk2vuBwx36CsbfuknpFri98apbnes2m-hskC0bc-Dhu8p9mYJgEzxW]' async defer></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+    </style>
+</head>
+<body>
+    <div id="myMap" style="position:relative;width:800px;height:600px;"></div>
+</body>
+</html>

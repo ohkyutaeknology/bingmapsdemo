@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta charset="utf-8" />
+    <script type= 'text/javascript' src="https://s3.ap-northeast-2.amazonaws.com/flanb-data/tmp/itinerary.json"></script>
+    <script type='text/javascript'>
+    var map, searchManager;
+    var colors = ['red','green'];
+
+    function GetMap() {
+        map = new Microsoft.Maps.Map('#myMap', {
+            credentials: 'ApwDy1ZLk6lk2vuBwx36CsbfuknpFri98apbnes2m-hskC0bc-Dhu8p9mYJgEzxW'
+        });
+    }
+
+    function Search() {
+        route(objI["day7"]);
+    }
+
+    function geocodeQuery(query) {
+        var searchRequest = {
+            where: query,
+            callback: function (r) {
+                if (r && r.results && r.results.length > 0) {
+                    var pin, pins = [], locs = [], output = 'Results:<br/>';
+
+                    for (var i = 0; i < r.results.length; i++) {
+                        //Create a pushpin for each result. 
+                        pin = new Microsoft.Maps.Pushpin(r.results[i].location, {
+                            text: i + ''
+                        });
+                        pins.push(pin);
+                        locs.push(r.results[i].location);
+
+                        output += i + ') ' + r.results[i].name + '<br/>';
+                    }
+
+                    //Add the pins to the map
+                    map.entities.push(pins);
+
+                    //Display list of results
+                    document.getElementById('output').innerHTML = output;
+
+                    //Determine a bounding box to best view the results.
+                    var bounds;
+
+                    if (r.results.length == 1) {
+                        bounds = r.results[0].bestView;
+                    } else {
+                        //Use the locations from the results to calculate a bounding box.
+                        bounds = Microsoft.Maps.LocationRect.fromLocations(locs);
+                    }
+
+                    map.setView({ bounds: bounds });
+                }
+            },
+            errorCallback: function (e) {
+                //If there is an error, alert the user about it.
+                alert("No results found.");
+            }
+        };
+
+        //Make the geocode request.
+        searchManager.geocode(searchRequest);
+    }
+
+
+    function route(itinerary) {
+        for(var i = 0; i < itinerary.length - 1; i++){
+            startPosition = itinerary[i].geometry.coordinates;
+            endPosition = itinerary[i+1].geometry.coordinates;
+            searchPubTransPathAJAX(startPosition, endPosition);
+        }
+    }
+
+    function searchPubTransPathAJAX(startPostion, endPostion) {
+        startX = startPosition[0];
+        startY = startPosition[1];
+        endX = endPosition[0];
+        endY = endPosition[1];
+        var xhr = new XMLHttpRequest();
+        var url = "https://api.odsay.com/v1/api/searchPubTransPath?lang=3&SX="+startX+"&SY="+startY+"&EX="+endX+"&EY="+endY+"&apiKey=Qa1cBMwy71TDV2ZWzdFfptE621TaIkHho0mDDd7TA6o";
+        xhr.open("GET", url, true);
+        xhr.send();
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                //parseStations(JSON.parse(xhr.responseText).result.path[0].subPath);
+                console.log(JSON.parse(xhr.responseText));
+                console.log(JSON.parse(xhr.responseText).result.path[0].info.mapObj);
+                callMapObjApiAJAX(JSON.parse(xhr.responseText).result.path[0].info.mapObj);
+                //parseStations(JSON.parse(xhr.responseText).result.path[0].subPath); // <- xhr.responseText 로 결과를 가져올 수 있음
+            }
+        }
+    }
+
+    function callMapObjApiAJAX(mabObj){
+        var xhr = new XMLHttpRequest();
+        //ODsay apiKey 입력
+        console.log("shibal");
+        var url = "https://api.odsay.com/v1/api/loadLane?mapObject=0:0@"+mabObj+"&apiKey=Qa1cBMwy71TDV2ZWzdFfptE621TaIkHho0mDDd7TA6o";
+        xhr.open("GET", url, true);
+        xhr.send();
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                var resultJsonData = JSON.parse(xhr.responseText);
+                console.log(resultJsonData.result.lane);
+                resultJsonData.result.lane.forEach(function(line) {
+                    var coords = [];
+                    line.section[0].graphPos.forEach(function(point){
+                        var loc = new Microsoft.Maps.Location(point.y, point.x);
+                        coords.push(loc);
+                    });
+
+                    var line = new Microsoft.Maps.Polyline(coords, {
+                        strokeColor: "Green",
+                        strokeThickness: 3
+                    });
+                    map.entities.push(line);
+                });
+            }
+        }
+    }
+
+    function parseStations(paths) {
+        var colorIndex = 0;
+        paths.forEach(function(path) {
+            if(path.trafficType === 3){
+            } else {
+                drawPath(path.passStopList.stations, colorIndex);
+                colorIndex++;
+            }
+        });
+    }
+
+    function drawPath(stations, colorIndex) {
+        var coords = [];
+
+        stations.forEach(function(station) {
+            var loc = new Microsoft.Maps.Location(station.y, station.x);
+            var pin = new Microsoft.Maps.Pushpin(loc);
+            map.entities.push(pin);
+            coords.push(pin.getLocation());
+        });
+
+        var line = new Microsoft.Maps.Polyline(coords, {
+            strokeColor: colors[colorIndex],
+            strokeThickness: 3
+        });
+
+        map.entities.push(line);
+    }
+
+
+    </script>
+    <script type='text/javascript' src='http://www.bing.com/api/maps/mapcontrol?callback=GetMap' async defer></script>
+</head>
+<body>
+    Start
+    <input id='start' type='text'/>
+    End
+    <input id='end' type='text'>
+    <input type='button'value='Search' onclick='Search()'/>
+    <br/>
+    <div id="myMap" style="position:relative;width:600px;height:400px;float:left;"></div>
+    <div id='output' style="margin-left:10px;float:left;"></div>
+</body>
+</html>
